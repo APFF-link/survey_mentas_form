@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>수혜자 만족도 조사</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size:14px; }
+  .page { display:none; }
+  .page.active { display:block; }
+  fieldset { border:1px solid #ccc; padding:10px; margin-bottom:20px; }
+  legend { font-weight:bold; }
+  button { margin:5px; }
+</style>
+</head>
+
+<body>
+
+<h2>수혜자 만족도 조사</h2>
+
+<!-- ================= A ================= -->
+<div id="pageA" class="page active">
+<h3>A. 기본정보</h3>
+
+<p>성별</p>
+<label><input type="radio" name="gender" value="남성"> 남성</label>
+<label><input type="radio" name="gender" value="여성"> 여성</label>
+
+<p>연령대</p>
+<label><input type="radio" name="age" value="10~20대"> 10~20대</label>
+<label><input type="radio" name="age" value="30대"> 30대</label>
+<label><input type="radio" name="age" value="40대"> 40대</label>
+<label><input type="radio" name="age" value="50대"> 50대</label>
+<label><input type="radio" name="age" value="60대 이상"> 60대 이상</label>
+
+<p>담배 재배기간(년)</p>
+<input id="years">
+
+<p>재배면적</p>
+<input id="area">
+
+<p>연간 생산량</p>
+<input id="amount">
+
+<br><br>
+<button onclick="goTo('pageA','pageB')">다음</button>
+</div>
+
+<!-- ================= B ================= -->
+<div id="pageB" class="page">
+<h3>B. 농가의 현재 상황</h3>
+
+<p>현재 재배 과정에서 가장 어려운 점 (복수선택)</p>
+<label><input type="checkbox" class="difficulty" value="병해충"> 병해충</label><br>
+<label><input type="checkbox" class="difficulty" value="생산성"> 생산성</label><br>
+<label><input type="checkbox" class="difficulty" value="시장 접근성"> 시장 접근성</label><br>
+<label><input type="checkbox" class="difficulty" value="가격 변동성"> 가격 변동성</label><br>
+<label><input type="checkbox" class="difficulty" value="후계농 부족"> 후계농 부족</label>
+
+<p>최근 1~2년간 농가 소득 변화</p>
+<label><input type="radio" name="income" value="감소"> 감소</label>
+<label><input type="radio" name="income" value="변동없음"> 변동없음</label>
+<label><input type="radio" name="income" value="증가"> 증가</label>
+<label><input type="radio" name="income" value="모르겠다"> 모르겠다</label>
+
+<p>담배 재배 외 다른 수익원 여부</p>
+<label><input type="radio" name="otherIncome" value="아니요"> 아니요</label>
+<label><input type="radio" name="otherIncome" value="예"> 예</label>
+
+<br><br>
+<button onclick="goTo('pageB','pageA')">이전</button>
+<button onclick="goTo('pageB','pageC')">다음</button>
+</div>
+
+<!-- ================= C ================= -->
+<div id="pageC" class="page">
+<h3>C. 프로그램 참여 경험</h3>
+
+<p><strong>c-1. 어떤 프로그램에 참여하셨나요? (복수선택)</strong></p>
+<p style="font-size:13px;color:#555;">
+선택한 프로그램에 대해서만 아래 질문이 표시됩니다.
+</p>
+
+<div id="programSelect"></div>
+
+<hr>
+
+<div id="programSurvey"></div>
+
+<br>
+<button onclick="goTo('pageC','pageB')">이전</button>
+<button onclick="goTo('pageC','pageD')">다음</button>
+</div>
+
+<!-- ================= D ================= -->
+<div id="pageD" class="page">
+<h3>D. 전반적인 만족도</h3>
+
+<label><input type="radio" name="overall" value="매우불만족"> 매우불만족</label>
+<label><input type="radio" name="overall" value="불만족"> 불만족</label>
+<label><input type="radio" name="overall" value="보통"> 보통</label>
+<label><input type="radio" name="overall" value="만족"> 만족</label>
+<label><input type="radio" name="overall" value="매우만족"> 매우만족</label>
+
+<p>개선이 필요하다고 느끼는 점</p>
+<textarea id="improvement" style="width:100%;height:60px;"></textarea>
+
+<p>향후 FACT 또는 KT&G에서 필요한 지원</p>
+<textarea id="support" style="width:100%;height:60px;"></textarea>
+
+<br><br>
+<button onclick="goTo('pageD','pageC')">이전</button>
+<button onclick="submitSurvey()">제출</button>
+</div>
+
+<!-- ================= THANK YOU ================= -->
+<div id="thankYou" class="page">
+<h2>제출해 주셔서 감사합니다.</h2>
+
+<button onclick="toggleAnswer()">내 응답보기</button>
+
+<div id="answerReview" style="display:none;margin-top:15px;"></div>
+</div>
+
+<script>
+/* ================= 공통 ================= */
+const programs = [
+  "Field School for Integrated Pest and Disease Control",
+  "Introduction of High-quality Seeds",
+  "Drone and AI Implementation for Pest and Disease Control",
+  "Biological Control Agents Development & Organic Fertilizer",
+  "Creation of Tobacco Traceability Platform",
+  "Entrepreneurship Family Training",
+  "Eco Print Training",
+  "Business Legality Training",
+  "Tobacco Slicing & Drying Technique (Agricultural Mechanization)",
+  "Capacity Building to Young Farmer",
+  "Tobacco Farmer Bootcamp Delegation in Magetan"
+];
+
+let lastSurveyData = {};
+
+/* ================= 페이지 검증 ================= */
+function validatePage(page) {
+  if (page === "pageA") {
+    if (!document.querySelector('input[name="gender"]:checked') ||
+        !document.querySelector('input[name="age"]:checked') ||
+        !years.value || !area.value || !amount.value) {
+      alert("A 페이지의 모든 항목을 입력해 주세요.");
+      return false;
+    }
+  }
+  if (page === "pageB") {
+    if (!document.querySelector('.difficulty:checked') ||
+        !document.querySelector('input[name="income"]:checked') ||
+        !document.querySelector('input[name="otherIncome"]:checked')) {
+      alert("B 페이지의 모든 항목을 입력해 주세요.");
+      return false;
+    }
+  }
+  if (page === "pageD") {
+    if (!document.querySelector('input[name="overall"]:checked')) {
+      alert("전반적 만족도를 선택해 주세요.");
+      return false;
+    }
+  }
+  return true;
+}
+
+function goTo(from, to) {
+  if (from !== "pageC" && !validatePage(from)) return;
+  document.getElementById(from).classList.remove("active");
+  document.getElementById(to).classList.add("active");
+}
+
+/* ================= C 페이지 ================= */
+document.getElementById("programSelect").innerHTML =
+  programs.map((p,i)=>`
+    <label>
+      <input type="checkbox" value="${i}" onchange="renderProgramSurvey()">
+      ${p}
+    </label><br>
+  `).join("");
+
+function renderProgramSurvey() {
+  const selected = [...document.querySelectorAll('#programSelect input:checked')]
+    .map(cb => cb.value);
+
+  const box = document.getElementById("programSurvey");
+  box.innerHTML = "";
+
+  selected.forEach(i => {
+    box.innerHTML += `
+    <fieldset>
+      <legend>${programs[i]}</legend>
+
+      <p>c-2. 프로그램 참여도</p>
+      <select data-key="c2_${i}">
+        <option>아주 많이</option><option>많이</option><option>보통</option>
+        <option>약간</option><option>거의 안함</option>
+      </select>
+
+      <p>c-3. 프로그램 기간의 적절성</p>
+      <select data-key="c3_${i}">
+        <option>너무 짧았음</option><option>보통</option><option>너무 길었음</option>
+      </select>
+
+      <p>c-4. 적정하다고 생각하는 횟수</p>
+      <input data-key="c4_${i}" style="width:100%;">
+
+      <p>c-5. 프로그램 난이도</p>
+      <select data-key="c5_${i}">
+        <option>아주 쉬움</option><option>쉬움</option><option>적절</option>
+        <option>어려움</option><option>아주 어려움</option>
+      </select>
+
+      <p>c-6. 강사의 전문성</p>
+      <select data-key="c6_${i}">
+        <option>매우만족</option><option>만족</option><option>보통</option>
+        <option>불만족</option><option>매우불만족</option>
+      </select>
+
+      <p>c-7. 프로그램 효과성</p>
+      <select data-key="c7_${i}">
+        <option>매우 그렇다</option><option>그렇다</option>
+        <option>보통이다</option><option>아니다</option><option>아주 아니다</option>
+      </select>
+
+      <p>c-8. 도움이 된 부분</p>
+      <select data-key="c8_${i}">
+        <option>지식 기술 향상</option><option>문제 해결능력 향상</option>
+        <option>비용 절감</option><option>소득증가</option>
+        <option>삶의 질 개선</option><option>가족의 인식변화</option>
+        <option>기타</option>
+      </select>
+      <input data-key="c8o_${i}" placeholder="기타 (주관식)" style="width:100%;margin-top:5px;">
+    </fieldset>`;
+  });
+}
+
+/* ================= 제출 ================= */
+function submitSurvey() {
+  // A
+  lastSurveyData.basic = {
+    gender: document.querySelector('input[name="gender"]:checked').value,
+    age: document.querySelector('input[name="age"]:checked').value,
+    years: years.value,
+    area: area.value,
+    amount: amount.value
+  };
+
+  // B
+  lastSurveyData.farm = {
+    difficulty: [...document.querySelectorAll('.difficulty:checked')]
+      .map(el => el.value).join(", "),
+    income: document.querySelector('input[name="income"]:checked').value,
+    otherIncome: document.querySelector('input[name="otherIncome"]:checked').value
+  };
+
+  // C
+  lastSurveyData.programs = [];
+  document.querySelectorAll('#programSelect input:checked').forEach(cb => {
+    const i = cb.value;
+    const get = k => document.querySelector(`[data-key="${k}_${i}"]`)?.value || "";
+    lastSurveyData.programs.push({
+      program: programs[i],
+      participation: get("c2"),
+      period: get("c3"),
+      frequency: get("c4"),
+      level: get("c5"),
+      instructor: get("c6"),
+      effectiveness: get("c7"),
+      benefit: get("c8"),
+      benefitOther: get("c8o")
+    });
+  });
+
+  // D
+  lastSurveyData.overall = {
+    satisfaction: document.querySelector('input[name="overall"]:checked').value,
+    improvement: improvement.value,
+    support: support.value
+  };
+
+  alert("제출해 주셔서 감사합니다.");
+  goTo("pageD","thankYou");
+}
+
+/* ================= 응답 보기 ================= */
+function toggleAnswer() {
+  const box = document.getElementById("answerReview");
+  if (box.style.display === "none") {
+    renderAnswerReview();
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
+}
+
+function renderAnswerReview() {
+  const b = lastSurveyData;
+  const box = document.getElementById("answerReview");
+
+  box.innerHTML = `
+    <h3>📋 내 응답</h3>
+
+    <strong>A. 기본정보</strong><br>
+    성별: ${b.basic.gender}<br>
+    연령대: ${b.basic.age}<br>
+    재배기간: ${b.basic.years}<br>
+    재배면적: ${b.basic.area}<br>
+    생산량: ${b.basic.amount}<br><br>
+
+    <strong>B. 농가 상황</strong><br>
+    어려운 점: ${b.farm.difficulty}<br>
+    소득 변화: ${b.farm.income}<br>
+    기타 수익원: ${b.farm.otherIncome}<br><br>
+
+    <strong>C. 프로그램 참여</strong><br>
+    ${b.programs.map(p=>`
+      ▶ ${p.program}<br>
+      참여도: ${p.participation}<br>
+      기간: ${p.period}<br>
+      횟수: ${p.frequency}<br>
+      난이도: ${p.level}<br>
+      강사: ${p.instructor}<br>
+      효과성: ${p.effectiveness}<br>
+      도움: ${p.benefit} ${p.benefit==="기타" ? "(" + p.benefitOther + ")" : ""}<br><br>
+    `).join("")}
+
+    <strong>D. 전반 만족도</strong><br>
+    만족도: ${b.overall.satisfaction}<br>
+    개선 의견: ${b.overall.improvement}<br>
+    필요 지원: ${b.overall.support}
+  `;
+}
+</script>
+
+</body>
+</html>
